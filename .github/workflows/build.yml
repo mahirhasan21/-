@@ -1,26 +1,40 @@
 name: Build APK
 on:
   push:
-    branches: [ main ]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Unzip project
-        run: unzip -q DRAGON_MASTER_project.zip -d project
+        run: |
+          ls -la
+          ZIP=$(find . -maxdepth 2 -iname "*.zip" | head -n 1)
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: repo-te kono zip file nei"
+            exit 1
+          fi
+          echo "Found: $ZIP"
+          unzip -q "$ZIP" -d project
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: 17
+
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
+
       - name: Build
-        working-directory: project
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: |
+          GR=$(find project -name gradlew | head -n 1)
+          cd "$(dirname "$GR")"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
       - uses: actions/upload-artifact@v4
         with:
-          name: DRAGON_MASTER
-          path: project/app/build/outputs/apk/release/*.apk
+          name: app-debug
+          path: project/**/build/outputs/apk/debug/*.apk
